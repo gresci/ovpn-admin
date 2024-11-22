@@ -2,7 +2,14 @@ name: Build and publish latest tag to Docker Hub (releases only)
 on:
   release:
     types: [created]
-
+  push:
+    branches:
+      - develop
+      - master
+      - main
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 jobs:
   build:
     name: build latest images for release
@@ -14,22 +21,19 @@ jobs:
           fetch-depth: 0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASS }}
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push openvpn image to Docker Hub
         uses: docker/build-push-action@v4
         with:
-          tags: flant/ovpn-admin:openvpn-latest
+          tags: "${{REGISTRY}}/${{IMAGE_NAME}}:openvpn-latest"
           platforms: linux/amd64,linux/arm64,linux/arm
           file:  Dockerfile.openvpn
           push: true
       - name: Push ovpn-admin image to Docker Hub
         uses: docker/build-push-action@v4
         with:
-          tags: flant/ovpn-admin:latest
+          tags: "${{REGISTRY}}/${{IMAGE_NAME}}:latest"
           platforms: linux/amd64,linux/arm64,linux/arm
           file: Dockerfile
           push: true
